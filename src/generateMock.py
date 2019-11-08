@@ -19,12 +19,13 @@ class GenerateMockData:
   '''info is instance of pd.DataFrame, two fields is required,run_id,relAbundance,read1,read2;
   data is the reads number to generate;
   '''
-  def __init__(self, info, outdir='./Mock',r1="Mock.R1.fastq.gz", r2="Mock.R2.fastq.gz", data=3333333):
+  def __init__(self, info, logger, outdir='./Mock',r1="Mock.R1.fastq.gz", r2="Mock.R2.fastq.gz", data=3333333):
     #info['readsNumber'] = (data*info.relAbundance/100).astype(int)
     choice = np.random.choice(info.index, data, p=info.relAbundance/info.relAbundance.sum())
     info['readsNumber'] = pd.Series(Counter(choice))
     info.readsNumber.fillna(0, downcast='infer', inplace=True)
     self.info = info
+    self.logger = logger
     outdir = path.abspath(outdir)
     self.r1 = path.join(outdir, r1)
     self.r2 = path.join(outdir, r2)
@@ -58,11 +59,11 @@ class GenerateMockData:
   def sampleN(self):
     return self.info.shape[0]
   def processOne(self):
-    logger.info("start " + self.status.run_id)
-    logger.info(self.status.run_id + "\tAbundance readsNumber: " + str(self.status.readsNumber))
+    self.logger.info("start " + self.status.run_id)
+    self.logger.info(self.status.run_id + "\tAbundance readsNumber: " + str(self.status.readsNumber))
     with gzip.open(self.status.read1, 'rb') as f:
       fq = bytearray(f.read()).strip().split(b'\n')
-      logger.debug("bytearray is complete")
+      self.logger.debug("bytearray is complete")
     with gzip.open(self.status.read2, 'rb') as f:
       fq2 = bytearray(f.read()).strip().split(b'\n')
     subfix = ('@' + self.status.run_id+'_not_').encode()
@@ -83,10 +84,10 @@ class GenerateMockData:
         substitute = subfix.replace(b'not', (''.join(np.random.choice(randomChr, 3))).encode())
         fq[4*i][0:1] = substitute
         fq2[4*i][0:1] = substitute
-    logger.debug("run_id add complete")
+    self.logger.debug("run_id add complete")
     list(map(lambda x: self.r1.write(b'\n'.join(fq[(x*4):(x*4+4)])+b'\n'), selected))
     list(map(lambda x: self.r2.write(b'\n'.join(fq2[(x*4):(x*4+4)])+b'\n'), selected))
-    logger.info("complete: " + self.status.run_id)
+    self.logger.info("complete: " + self.status.run_id)
   #def generateReads(self):
     
 def parseArgs():
